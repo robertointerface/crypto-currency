@@ -49,8 +49,6 @@ class KrakenContentFetcher(ContentResourceFetcher):
                 raise HTTPError(f'Error response at requesting data for symbol '
                                 f'{self.kraken_symbol} for starting date '
                                 f'{convert_unix_to_date(self.request_since)}')
-        except ConnectionError:
-            pass
         except Timeout:
             print('Timeout Error')
 
