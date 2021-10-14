@@ -2,6 +2,7 @@ import datetime
 import requests
 from requests.exceptions import Timeout, HTTPError, ConnectionError
 from .resource_content_abs import ContentResourceFetcher
+from .errors import NonRelatedResponseError
 
 START_DATE = 1570834800  # 12/oct/2019 00:00:00
 END_DATE = 1633993200  # 12/oct/2021 00:00:00
@@ -53,4 +54,36 @@ class KrakenContentFetcher(ContentResourceFetcher):
             print('Timeout Error')
 
 
+class KrakenResponseExtractor:
 
+    def __init__(self, response: dict):
+        self._response = response
+        self._response_sequence = None
+
+    def is_error_response(self):
+        errors = self._response.get('error')
+        if errors is not None:
+            return len(errors) > 0
+
+    @property
+    def response_result(self):
+        return self._response.get('result')
+
+    def set_response_sequence(self, symbol):
+        symbol_response = self.response_result.get(symbol)
+        if symbol_response is not None:
+            self._response_sequence = symbol_response
+        else:
+            raise NonRelatedResponseError
+
+    def __iter__(self):
+        return (i for i in self._response_sequence)
+
+
+class ResponseExtractor:
+
+    def __init__(self):
+        self.extractor = None
+
+    def extract_response(self, extractor):
+        pass
