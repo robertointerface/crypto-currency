@@ -1,5 +1,7 @@
 import datetime
 import requests
+from collections import namedtuple
+from decimal import *
 from requests.exceptions import Timeout, HTTPError, ConnectionError
 from .resource_content_abs import ContentResourceFetcher
 from .errors import NonRelatedResponseError
@@ -11,10 +13,19 @@ KRAKEN_URLS = {
     'OHLC': 'https://api.kraken.com/0/public/OHLC'
 }
 
+OHLC_data = namedtuple('OHLC_data', 'open high low close')
+
+
 
 def convert_unix_to_date(unix_time: int):
     return datetime.datetime.fromtimestamp(unix_time).strftime('%d/%m/%Y')
 
+class KrakenResponseIndex:
+    DATE = 0
+    OPEN = 1
+    HIGH = 2
+    LOW = 3
+    CLOSE = 4
 
 class KrakenContentFetcher(ContentResourceFetcher):
 
@@ -56,8 +67,9 @@ class KrakenContentFetcher(ContentResourceFetcher):
 
 class KrakenResponseExtractor:
 
-    def __init__(self, response: dict):
+    def __init__(self, response: dict, symbol: str, *args, **kwargs):
         self._response = response
+        self._symbol = symbol
         self._response_sequence = None
 
     def is_error_response(self):
@@ -69,15 +81,34 @@ class KrakenResponseExtractor:
     def response_result(self):
         return self._response.get('result')
 
-    def set_response_sequence(self, symbol):
-        symbol_response = self.response_result.get(symbol)
-        if symbol_response is not None:
-            self._response_sequence = symbol_response
+    def set_response_sequence(self):
+        """Set request response to a sequence that can be iterated"""
+        request_response = self.response_result.get(self._symbol)
+        if request_response is not None:
+            self._response_sequence = request_response
         else:
             raise NonRelatedResponseError
 
+    def create_serializer_input(self, OHLC_response: list):
+        # first need to convert to float as response is in JSON
+        OHLC_response = [float(i) for i in OHLC_response]
+        try:
+            return {
+                'open': round(OHLC_response[KrakenResponseIndex.OPEN], 2),
+                'high': round(OHLC_response[KrakenResponseIndex.HIGH], 2),
+                'low': round(OHLC_response[KrakenResponseIndex.LOW], 2),
+                'close': round(OHLC_response[KrakenResponseIndex.CLOSE], 2),
+                #'date': convert_unix_to_date(OHLC_response)
+            }
+        except IndexError:
+            # log in file not completed
+            #raise data not completed for this time stamp
+            pass
+            # need to raise error to not save this data and log it
+
     def __iter__(self):
-        return (i for i in self._response_sequence)
+        return (self.create_serializer_input(i)
+                for i in self._response_sequence)
 
 
 class ResponseExtractor:
@@ -86,4 +117,9 @@ class ResponseExtractor:
         self.extractor = None
 
     def extract_response(self, extractor):
+        self.extractor = extractor
+        # call if is not error response
+        # then call set response sequence
         pass
+
+

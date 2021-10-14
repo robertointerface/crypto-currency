@@ -1,0 +1,7 @@
+Fields are not valid error at currency, "PPS" is not a valid choice.
+Traceback (most recent call last):
+  File "/Users/shabrimehta/Desktop/job_hunting/env/app/crypto_rest/data_loader/save_crypto_names.py", line 50, in create_kraken_symbols
+    if symbol_ser.is_valid(raise_exception=True):
+  File "/Users/shabrimehta/Desktop/job_hunting/env/lib/python3.7/site-packages/rest_framework/serializers.py", line 228, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'currency': [ErrorDetail(string='"PPS" is not a valid choice.', code='invalid_choice')]}

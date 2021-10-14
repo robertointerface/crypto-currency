@@ -3,7 +3,6 @@ from django.db import transaction
 from rest_framework.serializers import ValidationError
 from crypto_data.serializers import KrakenSymbolSerializer
 
-
 BITCOIN = 'BTC'
 ETHERUM = 'ETH'
 THETHER_USD = 'USDT'
@@ -20,6 +19,12 @@ COINS_TO_CREATE = [
     ('solana', SOLANA)
 ]
 
+logger = logging.getLogger(__name__)
+c_handler = logging.StreamHandler()
+c_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+c_handler.setFormatter(c_format)
+logger.addHandler(c_handler)
+
 def get_validation_error(error):
     def create_error_message(error_field, error_messages):
         return f"error at {error_field}, " \
@@ -32,6 +37,8 @@ def get_validation_error(error):
 
 
 def create_kraken_symbols(currency):
+    """Create KrakenSymbols instances by providing a currency, each coin on
+    COINS_TO_CREATE is combined with the currency and saved."""
     try:
         with transaction.atomic():
             for c in COINS_TO_CREATE:
@@ -47,6 +54,6 @@ def create_kraken_symbols(currency):
                     symbol_ser.save()
     except ValidationError as e:
         validation_errors = get_validation_error(e)
-        logging.exception(f"Fields are not valid {validation_errors}")
+        logger.exception(f"Fields are not valid {validation_errors}")
     except Exception as e:
         logging.exception("Exception occurred")
