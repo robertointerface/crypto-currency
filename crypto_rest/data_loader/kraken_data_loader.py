@@ -1,5 +1,6 @@
 import datetime
 import requests
+import numbers
 import logging
 from collections import namedtuple
 from decimal import *
@@ -27,12 +28,37 @@ f_handler = logging.FileHandler('logs/kraken_extractor.log', mode='a', encoding=
 f_format = logging.Formatter('%(levelname)s - %(name)s - %(message)s')
 f_handler.setFormatter(f_format)
 
+
 logger.addHandler(c_handler)
 logger.addHandler(f_handler)
+
+UNIX_TIME_2010 = 1262304000
+CURRENT_TIME = int(datetime.datetime.utcnow().timestamp())
 
 
 def convert_unix_to_date(unix_time: int):
     return datetime.datetime.fromtimestamp(unix_time).strftime('%d/%m/%Y')
+
+
+def later_than_first_crypto_transaction(time_stamp):
+    return time_stamp >= UNIX_TIME_2010
+
+
+def less_than_today(time_stamp):
+    return time_stamp <= CURRENT_TIME
+
+
+def is_valid_unix_time(time_stamp: int):
+    """validate if a time stamp is a valid time stamp for crypto trading.
+    - check if is a integer as unix times are integers.
+    - check if time stamp is bigger than 2010 when first crypto transanction
+    took place.
+    - check that is not a less than the current time, No time travel yet
+    unfortunately.
+    """
+    return all([isinstance(time_stamp, numbers.Integral),
+               later_than_first_crypto_transaction(time_stamp),
+               less_than_today(time_stamp)])
 
 
 class KrakenResponseIndex:
@@ -106,6 +132,18 @@ class KrakenResponseExtractor:
         """get the first key from result dictionary"""
         return self.response_result.keys()[1]
 
+    def set_response_first_result_date(self):
+        """Logs the date of the first item on response, this is necessary as
+        sometimes when we request data starting from a specific date, there
+        might be no data from that specific date but the Kraken API returns the
+        data from the closest date to the requested one, therefore is important
+        to log this date so we are aware."""
+        first_item = self._response_sequence[0][0]
+        if is_valid_unix_time(first_item):
+            logger.info(f'First date for {self._symbol} is '
+                        f'{convert_unix_to_date(first_item)}')
+
+
     def set_response_sequence(self):
         """Set request response to a sequence that can be iterated"""
         request_response = self.response_result.get(self._symbol)
@@ -151,6 +189,8 @@ class ResponseExtractor:
         self.extractor = extractor
         # call if is not error response
         # then call set response sequence
+        # then call set first date on logging file
+        # then iterate over it and save data
         pass
 
 

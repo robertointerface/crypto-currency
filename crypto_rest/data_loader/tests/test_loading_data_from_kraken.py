@@ -150,3 +150,13 @@ class TestKrakenResponseExtractor(TestCase):
                                                        self.VALID_RESPONSE_SYMBOL)
             serialize_response = kraken_extractor.create_serializer_input(
                 OHLC_response)
+
+    def test_set_response_first_result_date(self):
+        with self.assertLogs('data_loader.kraken_data_loader') as cm:
+            kraken_extractor = KrakenResponseExtractor(self.VALID_RESPONSE,
+                                                       self.VALID_RESPONSE_SYMBOL)
+            kraken_extractor.set_response_sequence()
+            kraken_extractor.set_response_first_result_date()
+            self.assertEqual(cm.output[0],
+                             'INFO:data_loader.kraken_data_loader:First date '
+                             'for SOLUSD is 24/09/2021')
