@@ -3,6 +3,8 @@ from django.db import transaction
 from rest_framework.serializers import ValidationError
 from crypto_data.serializers import KrakenSymbolSerializer
 
+
+
 BITCOIN = 'BTC'
 ETHERUM = 'ETH'
 THETHER_USD = 'USDT'

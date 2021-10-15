@@ -8,7 +8,8 @@ from unittest.mock import patch
 from django.test import TestCase
 from data_loader.kraken_data_loader import (convert_unix_to_date,
                                             KrakenContentFetcher,
-                                            KrakenResponseExtractor)
+                                            KrakenResponseExtractor,
+                                            __name__ as logging_name)
 from requests.exceptions import HTTPError, ConnectionError
 
 
@@ -93,7 +94,6 @@ class TestKrakenResponseExtractor(TestCase):
         "last":1633996800}}
     VALID_RESPONSE_SYMBOL = "SOLUSD"
 
-
     def test_is_error_response(self):
         """Test method is_error_response returns True when there is an error
         in the response and false when not"""
@@ -108,7 +108,8 @@ class TestKrakenResponseExtractor(TestCase):
             expected_result(kraken_extractor.is_error_response())
 
     def test_set_response_sequence(self):
-        """"""
+        """test method set_response_sequence gets response sequence when the
+         returned response has the same symbol as the requested one"""
         kraken_extractor = KrakenResponseExtractor(self.VALID_RESPONSE,
                                                    self.VALID_RESPONSE_SYMBOL)
         kraken_extractor.set_response_sequence()
@@ -139,4 +140,13 @@ class TestKrakenResponseExtractor(TestCase):
                                 delta=0.01)
 
     def test_IndexError_logs_correct_error(self):
-        pass
+        """test logs when IndexError raises on method
+        create_serializer_input"""
+        open, high, low, close = ["149.92", "151.30", "126.60", "139.24"]
+        OHLC_response = [1632441600,
+                         open]
+        with self.assertLogs('data_loader.kraken_data_loader') as cm:
+            kraken_extractor = KrakenResponseExtractor(self.VALID_RESPONSE,
+                                                       self.VALID_RESPONSE_SYMBOL)
+            serialize_response = kraken_extractor.create_serializer_input(
+                OHLC_response)
