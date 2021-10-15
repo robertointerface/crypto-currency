@@ -8,12 +8,6 @@ from requests.exceptions import Timeout, HTTPError, ConnectionError
 from .resource_content_abs import ContentResourceFetcher
 from .errors import NonRelatedResponseError
 
-START_DATE = 1570834800  # 12/oct/2019 00:00:00
-END_DATE = 1633993200  # 12/oct/2021 00:00:00
-INCREMENT_STEPS = 1440  # 60 minutes * 24 hours, increments by day
-KRAKEN_URLS = {
-    'OHLC': 'https://api.kraken.com/0/public/OHLC'
-}
 
 OHLC_data = namedtuple('OHLC_data', 'open high low close')
 
@@ -115,6 +109,7 @@ class KrakenResponseExtractor:
         self._response_sequence = None
 
     def is_error_response(self):
+        """Check if the response returned form kraken api has error on it"""
         errors = self._response.get('error')
         if errors is not None:
             return len(errors) > 0
@@ -142,7 +137,6 @@ class KrakenResponseExtractor:
         if is_valid_unix_time(first_item):
             logger.info(f'First date for {self._symbol} is '
                         f'{convert_unix_to_date(first_item)}')
-
 
     def set_response_sequence(self):
         """Set request response to a sequence that can be iterated"""
@@ -178,19 +172,5 @@ class KrakenResponseExtractor:
     def __iter__(self):
         return (self.create_serializer_input(i)
                 for i in self._response_sequence)
-
-
-class ResponseExtractor:
-
-    def __init__(self):
-        self.extractor = None
-
-    def extract_response(self, extractor):
-        self.extractor = extractor
-        # call if is not error response
-        # then call set response sequence
-        # then call set first date on logging file
-        # then iterate over it and save data
-        pass
 
 

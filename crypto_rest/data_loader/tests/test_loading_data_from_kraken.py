@@ -4,12 +4,13 @@ and save it on SQL database using models on app crypto_data
 """
 from decimal import *
 from collections.abc import Mapping
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 from django.test import TestCase
 from data_loader.kraken_data_loader import (convert_unix_to_date,
                                             KrakenContentFetcher,
-                                            KrakenResponseExtractor,
-                                            __name__ as logging_name)
+                                            KrakenResponseExtractor)
+from data_loader.response_extractor import ResponseExtractor
+from data_loader.errors import ExtractorErrorResponse
 from requests.exceptions import HTTPError, ConnectionError
 
 
@@ -23,7 +24,7 @@ def mocked_requests_get(response_json_data, response_status_code):
     return MockResponse(response_json_data, response_status_code)
 
 
-class TestDataLoader(TestCase):
+class TestKrakenContentFetcher(TestCase):
 
     KRAKEN_OHLC_URL = 'https://api.kraken.com/0/public/OHLC'
     TEST_START_DATE = 1628809200  # 13/Aug/2021
@@ -152,6 +153,7 @@ class TestKrakenResponseExtractor(TestCase):
                 OHLC_response)
 
     def test_set_response_first_result_date(self):
+        """Test """
         with self.assertLogs('data_loader.kraken_data_loader') as cm:
             kraken_extractor = KrakenResponseExtractor(self.VALID_RESPONSE,
                                                        self.VALID_RESPONSE_SYMBOL)
@@ -160,3 +162,26 @@ class TestKrakenResponseExtractor(TestCase):
             self.assertEqual(cm.output[0],
                              'INFO:data_loader.kraken_data_loader:First date '
                              'for SOLUSD is 24/09/2021')
+
+
+class TestResponseExtractor(TestCase):
+
+    @patch('data_loader.kraken_data_loader.KrakenResponseExtractor')
+    def test_ExtractorErrorResponse_is_raised(self, kraken_mock):
+        """Test if extractor method 'is_error_response' returns True then
+         ExtractorErrorResponse is raised"""
+        # created mock kraken response extractor
+        kraken_response = kraken_mock()
+        # set return value for is_error_response to True
+        kraken_response.is_error_response.return_value = True
+        response_extractor = ResponseExtractor()
+        with self.assertRaises(ExtractorErrorResponse):
+            response_extractor.extract_response(kraken_response)
+
+    def test_iterator(self):
+        pass
+
+
+
+
+
