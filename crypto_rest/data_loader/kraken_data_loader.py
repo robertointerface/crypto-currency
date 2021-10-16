@@ -2,8 +2,8 @@ import datetime
 import requests
 import numbers
 import logging
+import pprint
 from collections import namedtuple
-from decimal import *
 from requests.exceptions import Timeout, HTTPError, ConnectionError
 from .resource_content_abs import ContentResourceFetcher
 from .errors import NonRelatedResponseError
@@ -100,6 +100,11 @@ class KrakenContentFetcher(ContentResourceFetcher):
         except Timeout:
             print('Timeout Error')
 
+    def __repr__(self):
+        pass
+
+    def __str__(self):
+        pass
 
 class KrakenResponseExtractor:
 
@@ -173,4 +178,12 @@ class KrakenResponseExtractor:
         return (self.create_serializer_input(i)
                 for i in self._response_sequence)
 
+    def __repr__(self):
+        class_name = self.__class__.__name__
+        return f'<{class_name} ' \
+               f'response={pprint.pprint(self._response, depth=1)} ' \
+               f'symbol={self._symbol}>'
 
+    def __str__(self):
+        class_name = self.__class__.__name__
+        return f'{class_name} for symbol {self._symbol}'

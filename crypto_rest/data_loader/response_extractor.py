@@ -28,3 +28,9 @@ class ResponseExtractor:
 
     def __iter__(self):
         return (i for i in self.extractor)
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}()'
+
+    def __str__(self):
+        return f'{self.__class__.__name__}'
