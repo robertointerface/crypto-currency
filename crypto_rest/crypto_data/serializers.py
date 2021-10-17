@@ -24,7 +24,6 @@ class KrakenOHLCSerializer(serializers.HyperlinkedModelSerializer):
     symbol = serializers.SlugRelatedField(
         queryset=KrakenSymbols.objects.all(),
         slug_field='symbol',
-
     )
 
     class Meta:

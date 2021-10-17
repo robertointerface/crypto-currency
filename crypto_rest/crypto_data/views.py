@@ -9,7 +9,7 @@ from crypto_data.serializers import (KrakenSymbolSerializer,
 class KrakenSymbolsList(generics.ListCreateAPIView):
     queryset = KrakenSymbols.objects.all()
     serializer_class = KrakenSymbolSerializer
-    name = 'kraken-symbol-list' # need to describe name to find hyperlink
+    name = 'krakensymbol-list' # need to describe name to find hyperlink
 
 
 class KrakenSymbolsDetail(generics.RetrieveUpdateDestroyAPIView):

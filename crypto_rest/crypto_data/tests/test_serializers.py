@@ -1,12 +1,12 @@
 import json
 from django.test import TestCase
+from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.test import APIRequestFactory, APIClient
 from rest_framework.authtoken.models import Token
 from rest_framework.test import force_authenticate
 from data_loader.save_crypto_names import create_kraken_symbols
-from crypto_data.serializers import KrakenSymbolSerializer
 from crypto_data.models import KrakenSymbols
 from crypto_data import views
 
@@ -49,3 +49,19 @@ class TestKrakenSymbolsListView(TestCase):
         else:
             self.fail(f"response returned {response.status_code}")
 
+    def test_post_request(self):
+        """Test post request saves KrakenSymbols"""
+        data = {'coin_name': 'Test coin',
+                'coin_symbol': 'TC',
+                'currency': 'EUR',
+                'symbol': 'TCEUR'}
+        request = self.factory.post('crypto-data/kraken-symbols/',
+                                    json.dumps(data),
+                                    content_type='application/json')
+        view = views.KrakenSymbolsList.as_view()
+        response = view(request)
+        if response.status_code == status.HTTP_201_CREATED:
+            created_object = get_object_or_404(KrakenSymbols, symbol='TCEUR')
+            self.assertIsNotNone(created_object)
+        else:
+            self.fail(f"response returned {response.status_code}")
