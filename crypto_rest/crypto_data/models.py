@@ -29,6 +29,8 @@ class KrakenSymbols(models.Model):
                               unique=True)
 
     def __repr__(self):
+        # change this to represent all the fields with their parameters like
+        # repr on serializers that display all fields what they are
         class_name = self.__class__.__name__
         return f'<{class_name} {self.symbol}>'
 
