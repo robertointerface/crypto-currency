@@ -11,28 +11,35 @@ from crypto_data.models import KrakenSymbols
 from crypto_data import views
 
 
+# set up the data creation for the test on the module level
+def setUpModule():
+    create_kraken_symbols('USD')
+
+
+KRAKEN_SYMBOL_SERIALIZER_FIELDS = ['url',
+                                   'coin_name',
+                                   'coin_symbol',
+                                   'currency',
+                                   'symbol',
+                                   'related_OHLC']
+
 class TestKrakenSymbolsListView(TestCase):
     """Test list and create operation for view KrakenSymbolsList"""
     VALID_CURRENCY = 'USD'
-    KrakenSymbolSerializer_fields = ['url',
-                                     'coin_name',
-                                     'coin_symbol',
-                                     'currency',
-                                     'symbol',
-                                     'related_OHLC']
-    @classmethod
-    def setUpClass(cls):
-        """Create kraken symbols in data base in order to test serializer"""
-        create_kraken_symbols(cls.VALID_CURRENCY)
+
+    # @classmethod
+    # def setUpClass(cls):
+    #     """Create kraken symbols in data base in order to test serializer"""
+    #     create_kraken_symbols(cls.VALID_CURRENCY)
 
     def setUp(self):
         self.factory = APIRequestFactory()
 
-    @classmethod
-    def tearDownClass(cls):
-        # no need to do anything as content is not really saved in database
-        # still need to define class to avoid error.
-        pass
+    # @classmethod
+    # def tearDownClass(cls):
+    #     # no need to do anything as content is not really saved in database
+    #     # still need to define class to avoid error.
+    #     pass
 
     def test_view_returns_correct_serializer_fields(self):
         """Test View returns correct fields with get operation"""
@@ -45,7 +52,7 @@ class TestKrakenSymbolsListView(TestCase):
         if response.status_code == status.HTTP_200_OK:
             json_response = response.data[0]
             self.assertCountEqual(json_response.keys(),
-                                  self.KrakenSymbolSerializer_fields)
+                                  KRAKEN_SYMBOL_SERIALIZER_FIELDS)
         else:
             self.fail(f"response returned {response.status_code}")
 
@@ -65,3 +72,44 @@ class TestKrakenSymbolsListView(TestCase):
             self.assertIsNotNone(created_object)
         else:
             self.fail(f"response returned {response.status_code}")
+
+
+class TestKrakenSymbolsDetailView(TestCase):
+
+    # @classmethod
+    # def setUpClass(cls):
+    #     """Create kraken symbols in data base in order to test serializer"""
+    #     create_kraken_symbols(cls.VALID_CURRENCY)
+
+    def setUp(self):
+        self.factory = APIRequestFactory()
+
+    # @classmethod
+    # def tearDownClass(cls):
+    #     # no need to do anything as content is not really saved in database
+    #     # still need to define class to avoid error.
+    #     pass
+
+    def test_get_request(self):
+        """Test get request returns correct object"""
+        request = self.factory.get('crypto-data/kraken-symbols/1')
+        view = views.KrakenSymbolsDetail.as_view()
+        response = view(request, pk=1)
+        if response.status_code == status.HTTP_200_OK:
+            self.assertCountEqual(response.data.keys(),
+                                  KRAKEN_SYMBOL_SERIALIZER_FIELDS)
+
+    def test_patch_request(self):
+        """Test patch method does not modify symbol even when provided"""
+        data_to_patch = {
+            'coin_symbol': 'BTCI',
+            'symbol': 'TCDD'
+        }
+        request = self.factory.patch('crypto-data/kraken-symbols/1',
+                                     json.dumps(data_to_patch),
+                                     content_type='application/json')
+        view = views.KrakenSymbolsDetail.as_view()
+        response = view(request, pk=1)
+        if response.status_code == status.HTTP_200_OK:
+            self.assertEqual(response.data.get('symbol'), 'BTCIUSD')
+

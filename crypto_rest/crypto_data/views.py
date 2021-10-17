@@ -16,4 +16,4 @@ class KrakenSymbolsDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = KrakenSymbols.objects.all()
     serializer_class = KrakenSymbolSerializer
     name = 'krakensymbols-detail'
-
+    lookup_field = 'pk'
