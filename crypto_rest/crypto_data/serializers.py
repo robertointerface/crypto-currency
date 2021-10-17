@@ -10,8 +10,18 @@ class KrakenSymbolSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class KrakenOHLCSerializer(serializers.HyperlinkedModelSerializer):
+    symbol = serializers.SlugRelatedField(
+        queryset=KrakenSymbols.objects.all(),
+        slug_field='symbol'
+    )
 
     class Meta:
         model = KrakenOHLC
-        fields = '__all__'
+        fields = ('url',
+                  'open',
+                  'high',
+                  'low',
+                  'close',
+                  'symbol',
+                  'date')
 

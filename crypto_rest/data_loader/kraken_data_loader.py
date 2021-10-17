@@ -31,7 +31,7 @@ CURRENT_TIME = int(datetime.datetime.utcnow().timestamp())
 
 
 def convert_unix_to_date(unix_time: int):
-    return datetime.datetime.fromtimestamp(unix_time).strftime('%d/%m/%Y')
+    return datetime.datetime.fromtimestamp(unix_time).strftime('%Y-%m-%d')
 
 
 def later_than_first_crypto_transaction(time_stamp):

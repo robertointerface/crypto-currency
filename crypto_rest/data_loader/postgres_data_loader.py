@@ -1,12 +1,14 @@
 """load crypto data into Postgres sql database"""
 import logging
+from collections.abc import Iterator
 from requests.exceptions import HTTPError
+from rest_framework.serializers import ValidationError
 from crypto_data.models import (KrakenSymbols,
                                 KrakenOHLC)
 from .kraken_data_loader import KrakenContentFetcher, KrakenResponseExtractor
 from .response_extractor import ResponseExtractor
-from .errors import ExtractorErrorResponse
-
+from .errors import ExtractorErrorResponse, NonRelatedResponseError
+from crypto_data.serializers import KrakenOHLCSerializer
 
 START_DATE = 1570834800  # 12/oct/2019 00:00:00
 END_DATE = 1633993200  # 12/oct/2021 00:00:00
@@ -42,6 +44,18 @@ def fetch_data(fetcher):
     except AttributeError as e:
         raise ExtractorErrorResponse from e
 
+def save_OHLC_data_on_database(data_iterator: Iterator, related_symbol):
+    for serializer_data in data_iterator:
+        #print(f'serializer_data {serializer_data}')
+        serializer_data['symbol'] = related_symbol
+        serializer = KrakenOHLCSerializer(data=serializer_data)
+        try:
+            if serializer.is_valid(raise_exception=True):
+                serializer.save()
+        except ValidationError as e:
+            print(f'ValidationError {e}')
+            print(f'//////////////////////////')
+
 def load_kraken_data_into_postgres(data_type: str):
     url = KRAKEN_URLS.get(data_type)
     if url is not None:
@@ -57,13 +71,17 @@ def load_kraken_data_into_postgres(data_type: str):
             try:
                 fetcher = KrakenContentFetcher(url, params)
                 response = fetch_data(fetcher)
+                #print(f'response form { symbol.symbol} {response}')
                 kraken_extractor = KrakenResponseExtractor(response,
                                                            symbol.symbol)
                 response_extractor = ResponseExtractor()
                 response_extractor.extract_response(kraken_extractor)
-            except ExtractorErrorResponse as e:
+                #serialized_result = [i for i in response_extractor]
+                #print(f'serialized_result {len(serialized_result)}')
+                save_OHLC_data_on_database(response_extractor, symbol.symbol)
+            except (ExtractorErrorResponse, NonRelatedResponseError) as e:
                 # at this stage the error that provoked this has already
                 # been logged into log file, so just pass the error and try
                 # next symbol
-                logger.warning(f'ExtractorErrorResponse {e}')
+                #logger.warning(f'ExtractorErrorResponse {e}')
                 pass

@@ -46,7 +46,7 @@ class TestKrakenContentFetcher(TestCase):
         """Test convert unix timestamp to a date that can be easier to read"""
         unix_time = 1634008620
         date = convert_unix_to_date(unix_time)
-        self.assertEqual(date, '12/10/2021')
+        self.assertEqual(date, '2021-10-12')
 
     def test_kraken_content_fetcher_returns_json_response(self):
         """fetch method returns a json object when correct parameters are
@@ -161,7 +161,7 @@ class TestKrakenResponseExtractor(TestCase):
             kraken_extractor.set_response_first_result_date()
             self.assertEqual(cm.output[0],
                              'INFO:data_loader.kraken_data_loader:First date '
-                             'for SOLUSD is 24/09/2021')
+                             'for SOLUSD is 2021-09-24')
 
 
 class TestResponseExtractor(TestCase):
@@ -210,6 +210,7 @@ class TestResponseExtractor(TestCase):
         response_extractor = ResponseExtractor()
         response_extractor.extract_response(kraken_extractor)
         serialized_result = [i for i in response_extractor]
+        print(f'serialized_result {serialized_result}')
         self.assertGreater(len(serialized_result), 0)
 
 

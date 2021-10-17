@@ -1,10 +1,15 @@
 from django.test import TestCase
 from unittest.mock import patch, Mock
+from unittest import skip
 from requests.exceptions import HTTPError
 from data_loader.save_crypto_names import create_kraken_symbols
-from data_loader.postgres_data_loader import load_kraken_data_into_postgres
-from data_loader.kraken_data_loader import KrakenContentFetcher
+from data_loader.postgres_data_loader import (load_kraken_data_into_postgres,
+                                              save_OHLC_data_on_database)
+from data_loader.kraken_data_loader import (KrakenContentFetcher,
+                                            is_valid_unix_time)
 from data_loader.response_extractor import ResponseExtractor
+from crypto_data.models import KrakenOHLC
+
 
 class TestLoadkrakenData(TestCase):
     """test method load_kraken_data_into_postgres"""
@@ -27,7 +32,7 @@ class TestLoadkrakenData(TestCase):
         load_kraken_data_into_postgres('OHLC')
         self.assertEqual(mock_fetcher.call_count, 6)
 
-
+    @skip
     def test_KrakenContentFetcher_init_is_called_with_right_arguments(self):
         """test KrakenContentFetcher __init__ is initialized with correct
         arguments when being called from method load_kraken_data_into_postgres
@@ -40,6 +45,7 @@ class TestLoadkrakenData(TestCase):
         # need to mock fetch method, otherwise error will raise as error uses
         # parameters that were not set on the mocked __init__
         KrakenContentFetcher.fetch = Mock()
+        save_OHLC_data_on_database = Mock()
         # need to mock ResponseExtractor.extract_response to avoid processing
         # this unnecessary part.
         ResponseExtractor.extract_response = Mock()
@@ -55,3 +61,12 @@ class TestLoadkrakenData(TestCase):
         KrakenContentFetcher.fetch.side_effect = HTTPError
         with self.assertLogs('data_loader.postgres_data_loader'):
             load_kraken_data_into_postgres('OHLC')
+
+    def test_save_OHLC_data_on_database(self):
+        """Test method save_OHLC_data_on_database saves OHLC data"""
+        load_kraken_data_into_postgres('OHLC')
+        saved_items = KrakenOHLC.objects.all().count()
+        print(f'saved_items {saved_items}')
+
+
+
