@@ -1,4 +1,6 @@
+import numbers
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 from crypto_data.models import KrakenSymbols, KrakenOHLC
 
 
@@ -35,6 +37,7 @@ class KrakenSymbolSerializer(serializers.HyperlinkedModelSerializer):
         instance.save()
         return instance
 
+
 class KrakenOHLCSerializer(serializers.HyperlinkedModelSerializer):
     symbol = serializers.SlugRelatedField(
         queryset=KrakenSymbols.objects.all(),
@@ -50,6 +53,4 @@ class KrakenOHLCSerializer(serializers.HyperlinkedModelSerializer):
                   'close',
                   'symbol',
                   'date')
-
-
 

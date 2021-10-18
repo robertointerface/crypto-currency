@@ -116,6 +116,8 @@ REST_FRAMEWORK = {
         'rest_framework.parsers.JSONParser',
         'rest_framework.parsers.MultiPartParser'
     ),
+    'PAGE_SIZE': 6,
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
 }
 # Internationalization
 # https://docs.djangoproject.com/en/3.2/topics/i18n/

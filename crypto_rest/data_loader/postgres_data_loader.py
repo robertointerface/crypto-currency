@@ -10,7 +10,8 @@ from .response_extractor import ResponseExtractor
 from .errors import ExtractorErrorResponse, NonRelatedResponseError
 from crypto_data.serializers import KrakenOHLCSerializer
 
-START_DATE = 1570834800  # 12/oct/2019 00:00:00
+#START_DATE = 1570834800  # 12/oct/2019 00:00:00
+START_DATE = 1627772400
 END_DATE = 1633993200  # 12/oct/2021 00:00:00
 INCREMENT_STEPS = 1440  # 60 minutes * 24 hours, increments by day
 KRAKEN_URLS = {
