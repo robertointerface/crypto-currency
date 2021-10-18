@@ -47,6 +47,7 @@ class TestKrakenSymbolsListView(TestCase):
                                    content_type='application/json')
         view = views.KrakenSymbolsList.as_view()
         response = view(request)
+        print(f'response.dat {response.data}')
         # get the ordered dict response as view response has not yet been
         # converted to JSON object.
         if response.status_code == status.HTTP_200_OK:
@@ -112,4 +113,27 @@ class TestKrakenSymbolsDetailView(TestCase):
         response = view(request, pk=1)
         if response.status_code == status.HTTP_200_OK:
             self.assertEqual(response.data.get('symbol'), 'BTCIUSD')
+
+    def test_put_request(self):
+        """Test put requests modifies all fields"""
+        data_to_put = {
+            'coin_name': 'Etherum 2',
+            'coin_symbol': 'ETH2',
+            'currency': 'GBP',
+        }
+        request = self.factory.put('crypto-data/kraken-symbols/2',
+                                    json.dumps(data_to_put),
+                                    content_type='application/json')
+        view = views.KrakenSymbolsDetail.as_view()
+        response = view(request, pk=1)
+        if response.status_code == status.HTTP_200_OK:
+            self.assertEqual(response.data.get('coin_name'), 'Etherum 2')
+            self.assertEqual(response.data.get('coin_symbol'), 'ETH2')
+            self.assertEqual(response.data.get('currency'), 'GBP')
+            self.assertEqual(response.data.get('symbol'), 'ETH2GBP')
+
+
+
+
+
 
