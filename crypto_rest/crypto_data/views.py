@@ -1,5 +1,6 @@
 from rest_framework import generics
-from django_filters import rest_framework as filters
+from django_filters import rest_framework as d_filter
+from rest_framework import filters
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from .custom_filters import KrakenOHLCFilter
@@ -35,12 +36,15 @@ class KrakenOHLCList(generics.ListCreateAPIView):
     serializer_class = KrakenOHLCSerializer
     name = 'Krakenohlc-list'
     pagination_class = KrakenOHLCPagination
-    filter_backends = (filters.DjangoFilterBackend,)
+    filter_backends = (d_filter.DjangoFilterBackend,
+                       filters.SearchFilter )
     filterset_class = KrakenOHLCFilter
-    search_fields = ['^symbol__symbol']
+    search_fields = ('^symbol__symbol', )
+
 
 class KrakenOHLCDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = KrakenOHLC.objects.all()
     serializer_class = KrakenOHLCSerializer
     name = 'krakenohlc-detail'
+
 

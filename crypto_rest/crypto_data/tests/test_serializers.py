@@ -24,7 +24,6 @@ def setUpModule():
     create_kraken_symbols('USD')
 
 
-
 KRAKEN_SYMBOL_SERIALIZER_FIELDS = ['url',
                                    'coin_name',
                                    'coin_symbol',
@@ -205,8 +204,8 @@ class TestKrakenOHLCListView(TestCase):
 
     def test_filter_fields(self):
         """Test request will use filter correctly"""
-        min_open = 1000
-        min_low = 7000
+        min_open = 200
+        min_low = 70
         max_high = 23
         max_close = 4
         # define test cases
@@ -236,13 +235,22 @@ class TestKrakenOHLCListView(TestCase):
         for test in test_cases:
             url, test_func, field = test
             # perform request with provided url
-            request = self.factory.get(url,
-                                       content_type='application/json')
+            request = self.factory.get(url)
             view = views.KrakenOHLCList.as_view()
             response = view(request)
             json_response = get_result_list(response.data)
+            # first test we have result, otherwise it might give False positive
+            self.assertGreater(len(json_response), 0)
             # assert returned items are correct by testing provided function
             [test_func(float(i.get(field))) for i in json_response]
+
+    def test_search_field(self):
+        """Test search_fields returns correctly"""
+        request = self.factory.get('crypto-data/kraken-ohlc/?search=ETHUSD')
+        view = views.KrakenOHLCList.as_view()
+        response = view(request)
+        json_response = get_result_list(response.data)
+        [self.assertEqual(i.get('symbol'), 'ETHUSD') for i in json_response]
 
     def test_post_request(self):
         """Test post request creates object"""

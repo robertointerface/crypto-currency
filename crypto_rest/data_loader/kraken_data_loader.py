@@ -126,7 +126,24 @@ class KrakenResponseExtractor:
     def _is_length_of_result_1(self):
         """check if the request result returned results belonging to one
         crypto coin or to multiple or empty"""
+
         return len(self.response_result.keys()) == 1
+
+    def find_result_key(self):
+        """call this method in case the returned response does not include the
+        requested symbol, sometimes Kraken will understand your request and
+        return the data correctly but under different symbol that the one
+        you requested, i.e you requested data for BTCUSD (Bitcoin in US dollars)
+        but kraken returns data for XXBTUSD, so you need to find out this
+        symbol in order to extract the data
+        """
+        # filter the keys that are not equal to 'last', you could use filter
+        # in function also but the filter is simple enough to understand like
+        # this.
+        response_keys = [k for k in self.response_result.keys() if k != 'last']
+        if len(list(response_keys)) == 1:
+            return response_keys[0]
+        return None
 
     def _first_response_result_key(self):
         """get the first key from result dictionary"""
@@ -151,8 +168,8 @@ class KrakenResponseExtractor:
         # Sometimes the requests returns the correct requested information
         # but under different symbol name, in those cases just get the
         # returned result.
-        elif self._is_length_of_result_1():
-            request_response_symbol = self._first_response_result_key()
+        elif self.find_result_key() is not None:
+            request_response_symbol = self.find_result_key()
             self._response_sequence = self.response_result.get(request_response_symbol)
         else:
             raise NonRelatedResponseError

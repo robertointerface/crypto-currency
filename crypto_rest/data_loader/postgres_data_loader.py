@@ -64,6 +64,8 @@ def load_kraken_data_into_postgres(data_type: str):
         # iterate over
         kraken_symbols = KrakenSymbols.objects.all()
         for symbol in kraken_symbols:
+            print('///////////////////////////////')
+            print(f'loading data for {symbol.symbol}')
             params = {
                 'pair': symbol.symbol,
                 'since': START_DATE,
@@ -85,4 +87,5 @@ def load_kraken_data_into_postgres(data_type: str):
                 # been logged into log file, so just pass the error and try
                 # next symbol
                 #logger.warning(f'ExtractorErrorResponse {e}')
+                print(f'ERROR FETCHING DATA FOR  {symbol.symbol} {e}')
                 pass

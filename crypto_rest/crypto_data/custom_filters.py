@@ -1,5 +1,4 @@
 from .models import KrakenOHLC
-from rest_framework import filters
 from django_filters import rest_framework as filters
 from django_filters import NumberFilter
 
