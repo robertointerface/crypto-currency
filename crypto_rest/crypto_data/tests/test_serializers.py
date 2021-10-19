@@ -1,5 +1,7 @@
 import json
 import datetime
+import functools
+from decimal import Decimal
 from django.test import TestCase
 from django.shortcuts import get_object_or_404
 from rest_framework import status
@@ -11,12 +13,16 @@ from data_loader.postgres_data_loader import load_kraken_data_into_postgres
 from data_loader.save_crypto_names import create_kraken_symbols
 from crypto_data.models import KrakenSymbols
 from crypto_data import views
-from crypto_data.custom_pagination import PAGE_SIZE_OHLC
+from crypto_data.custom_pagination import PAGE_SIZE_OHLC, MAX_PAGE_SIZE
 
+
+SEND_DATA_METHODS = ['post', 'put', 'patch']
+GET_DATA_METHODS = ['get', 'options']
 
 # set up the data creation for the test on the module level
 def setUpModule():
     create_kraken_symbols('USD')
+
 
 
 KRAKEN_SYMBOL_SERIALIZER_FIELDS = ['url',
@@ -25,6 +31,7 @@ KRAKEN_SYMBOL_SERIALIZER_FIELDS = ['url',
                                    'currency',
                                    'symbol',
                                    'related_OHLC']
+
 def get_result_list(result_data):
     """Get result from Rest api call, in case is paginated the result is under
     the key 'results'"""
@@ -32,31 +39,43 @@ def get_result_list(result_data):
         return result_data.get('results')
     return result_data
 
+
 class TestKrakenSymbolsListView(TestCase):
     """Test list and create operation for view KrakenSymbolsList"""
     VALID_CURRENCY = 'USD'
 
-    # @classmethod
-    # def setUpClass(cls):
-    #     """Create kraken symbols in data base in order to test serializer"""
-    #     create_kraken_symbols(cls.VALID_CURRENCY)
-
     def setUp(self):
         self.factory = APIRequestFactory()
 
-    # @classmethod
-    # def tearDownClass(cls):
-    #     # no need to do anything as content is not really saved in database
-    #     # still need to define class to avoid error.
-    #     pass
+    def valid_request_arg(func):
+        @functools.wraps(func)
+        def validate(self, *args, **kwargs):
+            method, *_ = args
+            if method in [*SEND_DATA_METHODS, *GET_DATA_METHODS]:
+                return func(self, *args, **kwargs)
+            raise AttributeError(
+                f'request method {method} is not valid, must be '
+                f'post, put, patch, get, options')
+        return validate
+
+    @valid_request_arg
+    def create_request(self, method, url, **kwargs):
+        if method in SEND_DATA_METHODS:
+            request_data = kwargs.get('request_data', {})
+            request_method = getattr(self.factory, method)
+            request = request_method(url,
+                                     data=json.dumps(request_data),
+                                     content_type='application/json')
+        else:
+            request_method = getattr(self.factory, method)
+            request = request_method(url)
+        return request
 
     def test_view_returns_correct_serializer_fields(self):
         """Test View returns correct fields with get operation"""
-        request = self.factory.get('crypto-data/kraken-symbols/',
-                                   content_type='application/json')
+        request = self.create_request('get', 'crypto-data/kraken-symbols/')
         view = views.KrakenSymbolsList.as_view()
         response = view(request)
-
         #print(f'response.dat {json.dumps(response.data)}')
         # get the ordered dict response as view response has not yet been
         # converted to JSON object.
@@ -73,9 +92,10 @@ class TestKrakenSymbolsListView(TestCase):
                 'coin_symbol': 'TC',
                 'currency': 'EUR',
                 'symbol': 'TCEUR'}
-        request = self.factory.post('crypto-data/kraken-symbols/',
-                                    json.dumps(data),
-                                    content_type='application/json')
+        test_url = 'crypto-data/kraken-symbols/'
+        request = self.create_request('post',
+                                      test_url,
+                                      **{'request_data': data})
         view = views.KrakenSymbolsList.as_view()
         response = view(request)
         if response.status_code == status.HTTP_201_CREATED:
@@ -87,19 +107,8 @@ class TestKrakenSymbolsListView(TestCase):
 
 class TestKrakenSymbolsDetailView(TestCase):
 
-    # @classmethod
-    # def setUpClass(cls):
-    #     """Create kraken symbols in data base in order to test serializer"""
-    #     create_kraken_symbols(cls.VALID_CURRENCY)
-
     def setUp(self):
         self.factory = APIRequestFactory()
-
-    # @classmethod
-    # def tearDownClass(cls):
-    #     # no need to do anything as content is not really saved in database
-    #     # still need to define class to avoid error.
-    #     pass
 
     def test_get_request(self):
         """Test get request returns correct object"""
@@ -166,9 +175,74 @@ class TestKrakenOHLCListView(TestCase):
                                    content_type='application/json')
         view = views.KrakenOHLCList.as_view()
         response = view(request)
+        #print(f'json_response {response.data}')
         json_response = get_result_list(response.data)
+
         # assert return response corresponds to page_size
         self.assertEqual(len(json_response), PAGE_SIZE_OHLC)
+
+    def test_get_request_max_page_size(self):
+        """Test get request does not return more items than the max set on
+        pagination parameter max_page_size"""
+        request = self.factory.get('crypto-data/kraken-ohlc/?page_size=30',
+                                   content_type='application/json')
+        view = views.KrakenOHLCList.as_view()
+        response = view(request)
+        json_response = get_result_list(response.data)
+        self.assertLessEqual(len(json_response), MAX_PAGE_SIZE)
+
+    def greater_than_or_equal(self, x, field):
+        def greater_than_or_equal_specified(y):
+            return self.assertGreaterEqual(y, x,
+                                           f'{y} is not >= {x} for {field}')
+        return greater_than_or_equal_specified
+
+    def less_than_or_equal(self, x, field):
+        def less_than_or_equal_specified(y):
+            return self.assertLessEqual(y, x,
+                                        f'{y} is not <= {x} for {field}')
+        return less_than_or_equal_specified
+
+    def test_filter_fields(self):
+        """Test request will use filter correctly"""
+        min_open = 1000
+        min_low = 7000
+        max_high = 23
+        max_close = 4
+        # define test cases
+        # you could do this with name tuples to be more pythonic
+        test_cases = [
+            (
+                f'crypto-data/kraken-ohlc/?min_open={min_open}',
+                self.greater_than_or_equal(min_open, 'open'),
+                'open'
+             ),
+            (
+                f'crypto-data/kraken-ohlc/?min_low={min_low}',
+                self.greater_than_or_equal(min_low, 'low'),
+                'low'
+            ),
+            (
+                f'crypto-data/kraken-ohlc/?max_high={max_high}',
+                self.less_than_or_equal(max_high, 'high'),
+                'high'
+            ),
+            (
+                f'crypto-data/kraken-ohlc/?max_close={max_close}',
+                self.less_than_or_equal(max_close, 'close'),
+                'close'
+            )
+        ]
+        for test in test_cases:
+            url, test_func, field = test
+            # perform request with provided url
+            request = self.factory.get(url,
+                                       content_type='application/json')
+            view = views.KrakenOHLCList.as_view()
+            response = view(request)
+            json_response = get_result_list(response.data)
+            # assert returned items are correct by testing provided function
+            [test_func(float(i.get(field))) for i in json_response]
 
     def test_post_request(self):
         """Test post request creates object"""

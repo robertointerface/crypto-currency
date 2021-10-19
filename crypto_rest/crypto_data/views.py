@@ -1,6 +1,9 @@
 from rest_framework import generics
+from django_filters import rest_framework as filters
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
+from .custom_filters import KrakenOHLCFilter
+
 from crypto_data.models import KrakenOHLC, KrakenSymbols
 from crypto_data.serializers import (KrakenSymbolSerializer,
                                      KrakenOHLCSerializer)
@@ -20,6 +23,7 @@ class KrakenSymbolsList(generics.ListCreateAPIView):
     name = 'krakensymbol-list' # need to describe name to find hyperlink
     pagination_class = KrakenSymbolsPagination
 
+
 class KrakenSymbolsDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = KrakenSymbols.objects.all()
     serializer_class = KrakenSymbolSerializer
@@ -31,6 +35,9 @@ class KrakenOHLCList(generics.ListCreateAPIView):
     serializer_class = KrakenOHLCSerializer
     name = 'Krakenohlc-list'
     pagination_class = KrakenOHLCPagination
+    filter_backends = (filters.DjangoFilterBackend,)
+    filterset_class = KrakenOHLCFilter
+    search_fields = ['^symbol__symbol']
 
 class KrakenOHLCDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = KrakenOHLC.objects.all()
