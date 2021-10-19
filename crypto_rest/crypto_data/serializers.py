@@ -1,10 +1,9 @@
-import numbers
 from rest_framework import serializers
-from rest_framework.exceptions import ValidationError
 from crypto_data.models import KrakenSymbols, KrakenOHLC
 
 
 class KrakenSymbolSerializer(serializers.HyperlinkedModelSerializer):
+    """Serializer for KrakenSymbols"""
     related_OHLC = serializers.HyperlinkedRelatedField(many=True,
                                                     read_only=True,
                                                     view_name='krakensymbols-detail')
@@ -14,7 +13,6 @@ class KrakenSymbolSerializer(serializers.HyperlinkedModelSerializer):
         # you could also just define exclude=[pk] but it makes it easier to
         # define all used fields and not having to go to models file to look
         # at it all the time
-
         fields = ('url',
                   'coin_name',
                   'coin_symbol',
@@ -39,6 +37,7 @@ class KrakenSymbolSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class KrakenOHLCSerializer(serializers.HyperlinkedModelSerializer):
+    """serializer for KrakenOHLC"""
     symbol = serializers.SlugRelatedField(
         queryset=KrakenSymbols.objects.all(),
         slug_field='symbol',

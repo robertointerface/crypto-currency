@@ -4,7 +4,6 @@ from rest_framework import filters
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from .custom_filters import KrakenOHLCFilter
-
 from crypto_data.models import KrakenOHLC, KrakenSymbols
 from crypto_data.serializers import (KrakenSymbolSerializer,
                                      KrakenOHLCSerializer)
@@ -19,6 +18,7 @@ connecting to storage, creating csv files...
 
 
 class KrakenSymbolsList(generics.ListCreateAPIView):
+    """List and Create KrakenSymbols"""
     queryset = KrakenSymbols.objects.all()
     serializer_class = KrakenSymbolSerializer
     name = 'krakensymbol-list' # need to describe name to find hyperlink
@@ -26,12 +26,14 @@ class KrakenSymbolsList(generics.ListCreateAPIView):
 
 
 class KrakenSymbolsDetail(generics.RetrieveUpdateDestroyAPIView):
+    """get single, put, patch, delete KrakenSymbols"""
     queryset = KrakenSymbols.objects.all()
     serializer_class = KrakenSymbolSerializer
     name = 'krakensymbols-detail'
 
 
 class KrakenOHLCList(generics.ListCreateAPIView):
+    """List and created KrakenOHLC"""
     queryset = KrakenOHLC.objects.all()
     serializer_class = KrakenOHLCSerializer
     name = 'Krakenohlc-list'
@@ -43,8 +45,22 @@ class KrakenOHLCList(generics.ListCreateAPIView):
 
 
 class KrakenOHLCDetail(generics.RetrieveUpdateDestroyAPIView):
+    """Get single, put, patch, delete KrakenOHLC"""
     queryset = KrakenOHLC.objects.all()
     serializer_class = KrakenOHLCSerializer
     name = 'krakenohlc-detail'
+
+
+class APIRoot(generics.GenericAPIView):
+    name = 'api-root'
+    def get(self, request, *args, **kwargs):
+        return Response({
+            'kraken-symbols': reverse(KrakenSymbolsList.name, request=request),
+            'kraken-ohlc': reverse(KrakenOHLCList.name, request=request)
+        })
+
+
+
+
 
 

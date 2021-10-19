@@ -4,12 +4,12 @@ app_names = 'crypto_data'
 
 urlpatterns = [
     re_path(r'^kraken-symbols/$',
-        views.KrakenSymbolsList.as_view(),
-        name=views.KrakenSymbolsList.name
+            views.KrakenSymbolsList.as_view(),
+            name=views.KrakenSymbolsList.name
         ),
     re_path(r'^kraken-symbols/(?P<pk>[0-9]+)$',
-        views.KrakenSymbolsDetail.as_view(),
-        name=views.KrakenSymbolsDetail.name),
+            views.KrakenSymbolsDetail.as_view(),
+            name=views.KrakenSymbolsDetail.name),
     re_path(r'^kraken-ohlc/$',
             views.KrakenOHLCList.as_view(),
             name=views.KrakenOHLCList.name,
@@ -18,4 +18,8 @@ urlpatterns = [
             views.KrakenOHLCDetail.as_view(),
             name=views.KrakenOHLCDetail.name,
             ),
+    re_path(r'^$',
+            views.APIRoot.as_view(),
+            name=views.APIRoot.name
+            )
 ]

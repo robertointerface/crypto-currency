@@ -1,14 +1,11 @@
+"""Test serializers and APIViews return correct responses"""
 import json
 import datetime
 import functools
-from decimal import Decimal
 from django.test import TestCase
 from django.shortcuts import get_object_or_404
 from rest_framework import status
-from rest_framework.response import Response
-from rest_framework.test import APIRequestFactory, APIClient
-from rest_framework.authtoken.models import Token
-from rest_framework.test import force_authenticate
+from rest_framework.test import APIRequestFactory
 from data_loader.postgres_data_loader import load_kraken_data_into_postgres
 from data_loader.save_crypto_names import create_kraken_symbols
 from crypto_data.models import KrakenSymbols
@@ -19,8 +16,9 @@ from crypto_data.custom_pagination import PAGE_SIZE_OHLC, MAX_PAGE_SIZE
 SEND_DATA_METHODS = ['post', 'put', 'patch']
 GET_DATA_METHODS = ['get', 'options']
 
-# set up the data creation for the test on the module level
+
 def setUpModule():
+    """set up the data creation for the test on the module level"""
     create_kraken_symbols('USD')
 
 
@@ -38,6 +36,20 @@ def get_result_list(result_data):
         return result_data.get('results')
     return result_data
 
+"""
+AUTHENTICATE USERS.
+No authentication is implemented at the moment but in order to test 
+authentication the simplest approach is to use force_authenticate from 
+from rest_framework.test, other alternative is to request the token auth
+and use it, but there is no point on keep doing this for all the tests if 
+you have tested your authentication and know is functioning correctly.
+
+1 - create a fake user
+2 - force authenticate the fake user on a view like
+    force_authenticate(request, fake_user)
+3 - set the user on the request with 
+    request.user = fake_user
+4 - call the view as always."""
 
 class TestKrakenSymbolsListView(TestCase):
     """Test list and create operation for view KrakenSymbolsList"""
@@ -47,6 +59,7 @@ class TestKrakenSymbolsListView(TestCase):
         self.factory = APIRequestFactory()
 
     def valid_request_arg(func):
+        """validate request method is a valid/safe one"""
         @functools.wraps(func)
         def validate(self, *args, **kwargs):
             method, *_ = args
@@ -59,6 +72,15 @@ class TestKrakenSymbolsListView(TestCase):
 
     @valid_request_arg
     def create_request(self, method, url, **kwargs):
+        """Create a REST API request call to be used for testing.
+        @args:
+            - method: request CRUD method.
+            - url: request url
+        @Return:
+            - on success: APIRequestFactory request ready to be used on a view.
+            - on failure: raise corresponding error.
+        """
+        # if is a method that will send data, the data needs to be JSONIFY
         if method in SEND_DATA_METHODS:
             request_data = kwargs.get('request_data', {})
             request_method = getattr(self.factory, method)
@@ -104,8 +126,9 @@ class TestKrakenSymbolsListView(TestCase):
             self.fail(f"response returned {response.status_code}")
 
 
-class TestKrakenSymbolsDetailView(TestCase):
 
+class TestKrakenSymbolsDetailView(TestCase):
+    """Test KrakenSymbolsDetail APIView"""
     def setUp(self):
         self.factory = APIRequestFactory()
 
@@ -153,11 +176,9 @@ class TestKrakenSymbolsDetailView(TestCase):
 
 class TestKrakenOHLCListView(TestCase):
 
-    # create OHLC for bitcoin and etherum
-
     @classmethod
     def setUpClass(cls):
-        """Create OHLC data to be able to test"""
+        """Create OHLC objects to be able to test CRUD operations on them"""
         load_kraken_data_into_postgres('OHLC')
 
     @classmethod
@@ -170,11 +191,11 @@ class TestKrakenOHLCListView(TestCase):
         self.factory = APIRequestFactory()
 
     def test_get_request(self):
+        """Test get request returns the default page size number of items"""
         request = self.factory.get('crypto-data/kraken-ohlc/',
                                    content_type='application/json')
         view = views.KrakenOHLCList.as_view()
         response = view(request)
-        #print(f'json_response {response.data}')
         json_response = get_result_list(response.data)
 
         # assert return response corresponds to page_size
@@ -268,5 +289,9 @@ class TestKrakenOHLCListView(TestCase):
         view = views.KrakenOHLCList.as_view()
         response = view(request)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+
+
+
 
 
