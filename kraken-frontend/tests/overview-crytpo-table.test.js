@@ -46,7 +46,7 @@ describe('overview table', () => {
     ({ render, element, elements } = createContainer());
   });
   it('initially shows a table', () => {
-    render(<OverViewCryptoTable />);
+    render(<OverViewCryptoTable cryptosData={cryptoData} />);
     expect(element('table')).not.toBeNull();
   });
   it('CryptoDataRow displays passed crypto info', () => {
@@ -68,6 +68,20 @@ describe('overview table', () => {
   });
   it('It displays one row per crypto coin', () => {
     render(<OverViewCryptoTable cryptosData={cryptoData} />);
-    expect(elements('tr.cryptoData')).toHaveLength(4);
+    expect(elements('tr.cryptoData')).toHaveLength(cryptoData.length);
   });
+  it('Does not display the table and displays message when no cryptosData passed', () => {
+    render(<OverViewCryptoTable />);
+    expect(element('.errorMessage')).not.toBeNull();
+    expect(element('.errorMessage').textContent).toEqual('Crypto Data Not Available');
+  });
+  it('table displays correct data', () => {
+    render(<OverViewCryptoTable cryptosData={cryptoData} />);
+    const BTCData = elements('.cryptoData')[0];
+    expect(BTCData.children).toHaveLength(5);
+    expect(BTCData.children[0].textContent).toEqual('BTCUSD');
+    expect(BTCData.children[1].textContent).toEqual('152.21');
+    expect(BTCData.children[3].textContent).toEqual('162');
+  });
+
 });

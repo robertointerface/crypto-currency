@@ -5,18 +5,24 @@ const TABLE_HEADER = ['name', 'open', 'high', 'low', 'close'];
 
 export const OverViewCryptoTable = ({ cryptosData }) => {
   return (
-    <table id="cryto-table">
-      <thead>
-        <tr>
-          {TABLE_HEADER.map((header) => <th key={`${header}`}>{header}</th>)}
-        </tr>
-      </thead>
-      <tbody>
-        {cryptosData.map((cryptoData) => (
-          <CryptoDataRow cryptoInfo={cryptoData} key={cryptoData.name} />
-        ))}
-      </tbody>
-    </table>
+    <>
+      {(cryptosData.length > 0)
+        ? (
+          <table id="crypto-table">
+            <thead>
+              <tr>
+                {TABLE_HEADER.map((header) => <th key={`${header}`}>{header}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {cryptosData.map((cryptoData) => (
+                <CryptoDataRow cryptoInfo={cryptoData} key={cryptoData.name} />
+              ))}
+            </tbody>
+          </table>
+        )
+        : <p className="errorMessage">Crypto Data Not Available</p>}
+    </>
   );
 };
 
