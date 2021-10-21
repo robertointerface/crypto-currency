@@ -83,5 +83,4 @@ describe('overview table', () => {
     expect(BTCData.children[1].textContent).toEqual('152.21');
     expect(BTCData.children[3].textContent).toEqual('162');
   });
-
 });
