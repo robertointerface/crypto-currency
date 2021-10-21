@@ -1,6 +1,6 @@
 import React from 'react';
 import 'whatwg-fetch';
-import ReactTestUtils, {act} from 'react-dom/test-utils';
+import ReactTestUtils from 'react-dom/test-utils';
 import {
   describe,
   it,
@@ -81,6 +81,7 @@ describe('KrakenSymbolForm', () => {
     });
   };
   describe('coin name field', () => {
+    // Test for coinName field
     itDisplaysfieldInput('coinName');
     itRendersLabel('coinName', 'Symbol Name');
     itContainsValue('coinName', 'symbol name');
@@ -90,6 +91,7 @@ describe('KrakenSymbolForm', () => {
       { coinName: 'Bitcoin', coinSymbol: 'BTC' });
   });
   describe('coin symbol field', () => {
+    // Test for coinSymbol field
     itDisplaysfieldInput('coinSymbol');
     itRendersLabel('coinSymbol', 'coin symbol');
     itContainsValue('coinSymbol', 'BTC');
@@ -97,5 +99,12 @@ describe('KrakenSymbolForm', () => {
     itSavesExistingValueWhenSubmitted('coinSymbol',
       'ETC',
       { coinName: 'symbol name', coinSymbol: 'ETC' });
+  });
+  describe('currency field', () => {
+    // Test currency field
+    itDisplaysfieldInput('currency');
+    itRendersLabel('currency', 'currency');
+    itContainsValue('currency', 'USD');
+    itModifiesValueWhenChanged('currency', 'GBP');
   });
 });

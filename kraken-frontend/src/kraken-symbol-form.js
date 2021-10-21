@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 
-export const KrakenCoinForm = ({ coinName, coinSymbol }) => {
+export const KrakenCoinForm = ({ coinName, coinSymbol, currency }) => {
   const [symbolData, setSymbolData] = useState({
-    coinName, coinSymbol,
+    coinName, coinSymbol, currency,
   });
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -46,6 +46,16 @@ export const KrakenCoinForm = ({ coinName, coinSymbol }) => {
           onChange={onChangeSymbolData}
         />
       </label>
+      <label htmlFor="currency">
+        currency
+        <input
+          type="text"
+          name="currency"
+          value={symbolData.currency}
+          id="currency"
+          onChange={onChangeSymbolData}
+        />
+      </label>
       <input
         type="submit"
         value="Save"
@@ -56,9 +66,11 @@ export const KrakenCoinForm = ({ coinName, coinSymbol }) => {
 KrakenCoinForm.defaultProps = {
   coinName: 'symbol name',
   coinSymbol: 'BTC',
+  currency: 'USD',
 };
 KrakenCoinForm.propTypes = {
   // eslint-disable-next-line react/forbid-prop-types
   coinName: PropTypes.string,
   coinSymbol: PropTypes.string,
+  currency: PropTypes.string,
 };
