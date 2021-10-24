@@ -9,7 +9,8 @@ from crypto_data.serializers import (KrakenSymbolSerializer,
                                      KrakenOHLCSerializer)
 from .custom_pagination import KrakenSymbolsPagination, KrakenOHLCPagination
 
-"""All the above could be also implemented using APIView as method/class
+"""
+All the above could be also implemented using APIView as method/class
 but this tends to create a lot of repetitive code. Generic Views are more 
 consistent and easier to read and they provide all the functionality for all
 CRUD operations, use APIViews if extra functionality is required like 

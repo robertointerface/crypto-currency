@@ -3,12 +3,12 @@ import logging
 from collections.abc import Iterator
 from requests.exceptions import HTTPError
 from rest_framework.serializers import ValidationError
-from crypto_data.models import (KrakenSymbols,
-                                KrakenOHLC)
-from .kraken_data_loader import KrakenContentFetcher, KrakenResponseExtractor
-from .response_extractor import ResponseExtractor
-from .errors import ExtractorErrorResponse, NonRelatedResponseError
+from crypto_data.models import KrakenSymbols
 from crypto_data.serializers import KrakenOHLCSerializer
+from data_loader.kraken_data_loader import KrakenContentFetcher, KrakenResponseExtractor
+from data_loader.response_extractor import ResponseExtractor
+from data_loader.errors import ExtractorErrorResponse, NonRelatedResponseError
+
 
 #START_DATE = 1570834800  # 12/oct/2019 00:00:00
 START_DATE = 1627772400
@@ -34,9 +34,11 @@ c_handler.setFormatter(c_format)
 logger.addHandler(c_handler)
 
 
-
 def fetch_data(fetcher):
-    """Fetch data from a given object"""
+    """
+    Fetch data from a given instance, the instance must follow interface as
+    ABC class ContentResourceFetcher at resource_content_abs.
+    """
     try:
         return fetcher.fetch()
     except HTTPError as e:
@@ -45,47 +47,63 @@ def fetch_data(fetcher):
     except AttributeError as e:
         raise ExtractorErrorResponse from e
 
-def save_OHLC_data_on_database(data_iterator: Iterator, related_symbol):
+# improve this method in the future to not use the same serializer
+# KrakenOHLCSerializer, use different serializer depending on the ocasssion
+# this could be done by creating a serializer with a factory method or similar.
+def save_OHLC_data_on_database(data_iterator: Iterator, related_symbol: str):
+    """Iterate over a collection of dicts that contain the necessary parameters
+    to create a KrakenOHLCSerializer and save it without raising a validation
+    exception
+    @args:
+        - data_iterator: instance with __iter__ or __getitem__ implemented, to
+        comply with iterator protocol.
+        - related_symbol: related symbol to be included on KrakenOHLCSerializer
+    @returns:
+        - On Success: save all items on on as KrakenOHLCSerializer.
+        - On Failure: raise ValidationError.
+    """
     for serializer_data in data_iterator:
-        #print(f'serializer_data {serializer_data}')
         serializer_data['symbol'] = related_symbol
         serializer = KrakenOHLCSerializer(data=serializer_data)
         try:
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
         except ValidationError as e:
-            print(f'ValidationError {e}')
-            print(f'//////////////////////////')
+            # log in here validation error and pass
+            logger.error(f'Validation error for symbol {related_symbol}'
+                         f'{e}')
+
 
 def load_kraken_data_into_postgres(data_type: str):
+    """Provided a data type (OHLC, ), Load data from kraken api of that specific type,
+    data is related to all the symbols already saved at KrakenSymbols.
+    """
     url = KRAKEN_URLS.get(data_type)
     if url is not None:
         # get all the saved symbols
-        # iterate over
+        # iterate over each one to extract all the data from a specified time.
         kraken_symbols = KrakenSymbols.objects.all()
         for symbol in kraken_symbols:
-            print('///////////////////////////////')
-            print(f'loading data for {symbol.symbol}')
+            # prepare query parameters
             params = {
                 'pair': symbol.symbol,
                 'since': START_DATE,
                 'interval': INCREMENT_STEPS,
             }
             try:
+                # create fetcher and try to fetch the data
                 fetcher = KrakenContentFetcher(url, params)
                 response = fetch_data(fetcher)
-                #print(f'response form { symbol.symbol} {response}')
+                """use a KrakenResponseExtractor with the returned response 
+                from kraken to extract data in a format that serializer 
+                KrakenOHLCSerializer can use."""
                 kraken_extractor = KrakenResponseExtractor(response,
                                                            symbol.symbol)
                 response_extractor = ResponseExtractor()
                 response_extractor.extract_response(kraken_extractor)
-                #serialized_result = [i for i in response_extractor]
-                #print(f'serialized_result {len(serialized_result)}')
                 save_OHLC_data_on_database(response_extractor, symbol.symbol)
             except (ExtractorErrorResponse, NonRelatedResponseError) as e:
                 # at this stage the error that provoked this has already
-                # been logged into log file, so just pass the error and try
+                # been logged into log file, so just print the error and try
                 # next symbol
-                #logger.warning(f'ExtractorErrorResponse {e}')
                 print(f'ERROR FETCHING DATA FOR  {symbol.symbol} {e}')
-                pass

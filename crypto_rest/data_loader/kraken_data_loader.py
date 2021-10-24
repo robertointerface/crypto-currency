@@ -1,12 +1,13 @@
+"""Fetch data from Kraken API and filter its response"""
 import datetime
-import requests
-import numbers
 import logging
+import numbers
 import pprint
 from collections import namedtuple
-from requests.exceptions import Timeout, HTTPError, ConnectionError
-from .resource_content_abs import ContentResourceFetcher
-from .errors import NonRelatedResponseError
+import requests
+from requests.exceptions import Timeout, HTTPError
+from data_loader.resource_content_abs import ContentResourceFetcher
+from data_loader.errors import NonRelatedResponseError
 
 
 OHLC_data = namedtuple('OHLC_data', 'open high low close')
@@ -18,7 +19,9 @@ c_handler.setLevel(logging.ERROR)
 c_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 c_handler.setFormatter(c_format)
 
-f_handler = logging.FileHandler('logs/kraken_extractor.log', mode='a', encoding='utf-8')
+f_handler = logging.FileHandler('logs/kraken_extractor.log',
+                                mode='a',
+                                encoding='utf-8')
 f_format = logging.Formatter('%(levelname)s - %(name)s - %(message)s')
 f_handler.setFormatter(f_format)
 
@@ -31,14 +34,17 @@ CURRENT_TIME = int(datetime.datetime.utcnow().timestamp())
 
 
 def convert_unix_to_date(unix_time: int):
+    """convert unix time stamp into a date of format year-month-day"""
     return datetime.datetime.fromtimestamp(unix_time).strftime('%Y-%m-%d')
 
 
-def later_than_first_crypto_transaction(time_stamp):
+def is_later_than_first_crypto_transaction(time_stamp: int):
+    """is time_stamp later than 2010"""
     return time_stamp >= UNIX_TIME_2010
 
 
-def less_than_today(time_stamp):
+def is_less_than_today(time_stamp: int):
+    """is time_stamp less than today"""
     return time_stamp <= CURRENT_TIME
 
 
@@ -51,11 +57,17 @@ def is_valid_unix_time(time_stamp: int):
     unfortunately.
     """
     return all([isinstance(time_stamp, numbers.Integral),
-               later_than_first_crypto_transaction(time_stamp),
-               less_than_today(time_stamp)])
+               is_later_than_first_crypto_transaction(time_stamp),
+               is_less_than_today(time_stamp)])
 
 
 class KrakenResponseIndex:
+    """
+    Kraken api returns an array with HOLC data, each item in the array is
+    an array with all the HOLC info for a specific date, i.e
+    [[OHLC data for 1 january],[OHLC data for 2 january]], use the indexes
+    below to know where to locate specific OHLC data on every array,
+    i.e the date is in index 0 or open value on index 1."""
     DATE = 0
     OPEN = 1
     HIGH = 2
@@ -64,7 +76,13 @@ class KrakenResponseIndex:
 
 
 class KrakenContentFetcher(ContentResourceFetcher):
-
+    """Fetch data from Kraken API or report error.
+    Methods:
+        - fetch: fetch data.
+    Properties:
+    - kraken_symbol: Kraken symbol for requested information
+    - request_since: start time for requested information.
+    """
     def __init__(self, url: str, params: dict):
         """Initialize instance.
         @params:
@@ -93,21 +111,39 @@ class KrakenContentFetcher(ContentResourceFetcher):
                                     timeout=5)
             if response.status_code == requests.codes.ok:
                 return response.json()
-            else:
-                raise HTTPError(f'Error response at requesting data for symbol '
-                                f'{self.kraken_symbol} for starting date '
-                                f'{convert_unix_to_date(self.request_since)}')
-        except Timeout:
-            print('Timeout Error')
+
+            raise HTTPError(f'Error response at requesting data for symbol '
+                            f'{self.kraken_symbol} for starting date '
+                            f'{convert_unix_to_date(self.request_since)}')
+        except Timeout as e:
+            raise HTTPError(f'Time out when requesting url {self._url} with '
+                            f'params {self._params}') from e
 
     def __repr__(self):
-        pass
+        class_name = self.__class__.__name__
+        return f'{class_name}({self._url, self._params})'
 
     def __str__(self):
-        pass
+        return f'Kraken fetcher for params {self._params}'
+
 
 class KrakenResponseExtractor:
+    """Convert a JSON response returned from Kraken into a dictionary that
+    can be used by a serializer to save content.
+    Methods:
+        - is_error_response: Kraken response includes error messages.
+        - _is_length_of_result_1: Kraken response includes more than 1 result
+        object, Kraken returns 1 result per coin, this method tells us if the
+        result includes data from multiple coins or only one.
+        - find_result_key: provided that method _is_length_of_result_1 returns
+        True, find the coin symbol.
+        - set_response_first_result_date: Logs the date of the first item on
+        response.
+        - set_response_sequence: Response from Kraken is contained in a list
+        , this method saves that list to self._response_sequence so later it
+        can be iterated.
 
+    """
     def __init__(self, response: dict, symbol: str, *args, **kwargs):
         self._response = response
         self._symbol = symbol
@@ -121,12 +157,12 @@ class KrakenResponseExtractor:
 
     @property
     def response_result(self):
+        """Get result object from kraken response."""
         return self._response.get('result')
 
     def _is_length_of_result_1(self):
         """check if the request result returned results belonging to one
         crypto coin or to multiple or empty"""
-
         return len(self.response_result.keys()) == 1
 
     def find_result_key(self):
@@ -172,10 +208,13 @@ class KrakenResponseExtractor:
             request_response_symbol = self.find_result_key()
             self._response_sequence = self.response_result.get(request_response_symbol)
         else:
-            raise NonRelatedResponseError
+            raise NonRelatedResponseError #PRINT THIS AS IS NOT HANDLE AT THE MOMENT
 
     def create_serializer_input(self, OHLC_response: list):
-        # first need to convert to float as response is in JSON
+        """Use OHLC data returned form Kraken API to create a dictionary
+        object that can be used by KrakenSymbolSerializer."""
+        # first need to convert to float all OHLC numbers from kraken api as
+        # numbers are provided in JSON format.
         OHLC_response = [float(i) for i in OHLC_response]
         try:
             # create a dictionary that can be used by KrakenSymbolSerializer
@@ -188,10 +227,12 @@ class KrakenResponseExtractor:
                     OHLC_response[KrakenResponseIndex.DATE])
             }
         except IndexError as e:
-            # log error to analyze
+            # log error to analyze later and try next OHLC item.
             logger.error(f'Index exception at symbol {self._symbol} {e.args}')
 
     def __iter__(self):
+        """iterate over the items obtained from Kraken api and pass them in a
+         format that ca be used to be saved on database."""
         return (self.create_serializer_input(i)
                 for i in self._response_sequence)
 

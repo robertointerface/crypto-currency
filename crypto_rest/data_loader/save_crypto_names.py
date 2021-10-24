@@ -4,7 +4,6 @@ from rest_framework.serializers import ValidationError
 from crypto_data.serializers import KrakenSymbolSerializer
 
 
-
 BITCOIN = 'BTC'
 ETHERUM = 'ETH'
 THETHER_USD = 'USDT'
@@ -38,10 +37,16 @@ def get_validation_error(error):
         return '; '.join(error_messages)
 
 
-def create_kraken_symbols(currency):
-    """Create KrakenSymbols instances by providing a currency, each coin on
-    COINS_TO_CREATE is combined with the currency and saved."""
+def create_kraken_symbols(currency: str):
+    """
+    Create KrakenSymbols instances by providing a currency, each coin on
+    COINS_TO_CREATE is combined with the currency and saved.
+    @Params:
+        - Currency: coin currency, Must be a valid currency stated on
+        KrakenSymbols.CURRENCY_TYPES
+    """
     try:
+        # use atomic to dave all or none
         with transaction.atomic():
             for c in COINS_TO_CREATE:
                 coin_name, coin_symbol = c
@@ -58,4 +63,5 @@ def create_kraken_symbols(currency):
         validation_errors = get_validation_error(e)
         logger.exception(f"Fields are not valid {validation_errors}")
     except Exception as e:
-        logging.exception("Exception occurred")
+        exception_errors = get_validation_error(e)
+        logging.exception(f"Exception occurred {exception_errors}")
