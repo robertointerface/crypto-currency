@@ -15,8 +15,12 @@ a form component to upload data, note it uses eslint-config-airbnb.
 2 - crypto_rest: this directory contains a Django app intended to show abilities for
 django/django rest framework, TDD, developed with design patters, Abstract base classes,
 Object Oriented Programming.
-    2.1 - crypto_data: Django rest framework Design with generic views and Serializers.
-    2.2 - crypto_rest: Django settings directory.
-    2.3 - data_display: Develop script with command line options to display crypto currency data.
-    2.4 - data_loader: Load data from Kraken API and save it into a Postgresql database, uses TDD, Abstract
-    base classes, design patterns.
+
+2.1 - crypto_data: Django rest framework Design with generic views and Serializers.
+
+2.2 - crypto_rest: Django settings directory.
+
+2.3 - data_display: Develop script with command line options to display crypto currency data.
+
+2.4 - data_loader: Load data from Kraken API and save it into a Postgresql database, uses TDD, Abstract
+base classes, design patterns.
