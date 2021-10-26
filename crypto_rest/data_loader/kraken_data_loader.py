@@ -111,7 +111,6 @@ class KrakenContentFetcher(ContentResourceFetcher):
                                     timeout=5)
             if response.status_code == requests.codes.ok:
                 return response.json()
-
             raise HTTPError(f'Error response at requesting data for symbol '
                             f'{self.kraken_symbol} for starting date '
                             f'{convert_unix_to_date(self.request_since)}')
